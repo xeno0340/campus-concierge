@@ -1,22 +1,42 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { useEffect } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import Navbar from './components/Navbar.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { useSmoothScroll } from './hooks/useSmoothScroll.js'
+import Home from './pages/Home.jsx'
+import Login from './pages/Login.jsx'
+import Register from './pages/Register.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
-  const [status, setStatus] = useState('Checking server...')
+  const location = useLocation()
+  useSmoothScroll()
 
   useEffect(() => {
-    axios
-      .get('/api/health')
-      .then((res) => setStatus(res.data.message))
-      .catch(() => setStatus('Server not reachable'))
-  }, [])
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 text-slate-800">
-      <div className="text-center">
-        <h1 className="text-4xl font-semibold">Campus Concierge</h1>
-        <p className="mt-3 text-slate-500">{status}</p>
-      </div>
-    </div>
+    <>
+      <Navbar />
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AnimatePresence>
+    </>
   )
 }
