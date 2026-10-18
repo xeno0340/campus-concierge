@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import PageTransition from '../components/PageTransition.jsx'
-import { Stagger, Item } from '../components/motion.jsx'
-import { buttonClasses } from '../components/ui/Button.jsx'
+import Hero from '../components/Hero.jsx'
+import Marquee from '../components/Marquee.jsx'
+import TiltCard from '../components/TiltCard.jsx'
+import ServiceImage from '../components/ServiceImage.jsx'
 import { api } from '../lib/api.js'
 
 const CATEGORY = {
@@ -21,21 +23,31 @@ const formatPrice = (p) =>
 
 function ServiceCard({ service }) {
   return (
-    <article className="group rounded-2xl border border-line bg-surface p-6 shadow-soft transition duration-500 ease-silk hover:-translate-y-1 hover:border-accent/60">
-      <p className="text-xs tracking-[0.16em] text-accent-strong uppercase">{CATEGORY[service.category]}</p>
-      <h3 className="mt-3 font-display text-2xl leading-tight text-ink">{service.name}</h3>
-      <p className="mt-2 text-sm text-muted">{service.location}</p>
-      <div className="mt-6 flex items-center justify-between border-t border-line pt-4 text-sm">
-        <span className="font-medium text-ink">{formatPrice(service.price)}</span>
-        <span className="text-muted">{service.slotMinutes} min slots</span>
-      </div>
-    </article>
+    <TiltCard className="rounded-2xl">
+      <article
+        data-cursor="View"
+        className="overflow-hidden rounded-2xl border border-line bg-surface shadow-soft transition-colors duration-500 hover:border-accent/60"
+      >
+        <div className="relative h-36 border-b border-line bg-surface-2">
+          <ServiceImage category={service.category} name={service.name} image={service.images?.[0]} className="h-full w-full" />
+          <span className="absolute top-3 left-3 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-white/90 uppercase backdrop-blur-md">
+  {CATEGORY[service.category]}
+</span>
+        </div>
+        <div className="p-6">
+          <h3 className="font-display text-2xl leading-tight text-ink">{service.name}</h3>
+          <p className="mt-2 text-sm text-muted">{service.location}</p>
+          <div className="mt-6 flex items-center justify-between border-t border-line pt-4 text-sm">
+            <span className="font-medium text-ink">{formatPrice(service.price)}</span>
+            <span className="text-muted">{service.slotMinutes} min slots</span>
+          </div>
+        </div>
+      </article>
+    </TiltCard>
   )
 }
 
-function SkeletonCard() {
-  return <div className="h-48 animate-pulse rounded-2xl border border-line bg-surface-2" />
-}
+const SkeletonCard = () => <div className="h-72 animate-pulse rounded-2xl border border-line bg-surface-2" />
 
 export default function Home() {
   const [services, setServices] = useState(null)
@@ -50,46 +62,44 @@ export default function Home() {
 
   return (
     <PageTransition>
-      <section className="mx-auto max-w-6xl px-4 pt-16 pb-12 sm:px-6 sm:pt-24">
-        <Stagger>
-          <Item>
-            <p className="text-sm tracking-[0.2em] text-accent-strong uppercase">Smart Campus Services</p>
-          </Item>
-          <Item>
-            <h1 className="mt-5 max-w-4xl font-display text-5xl leading-[1.02] tracking-tight text-ink sm:text-6xl lg:text-7xl">
-              Every campus service, <em className="text-accent-strong">beautifully</em> booked.
-            </h1>
-          </Item>
-          <Item>
-            <p className="mt-6 max-w-xl text-lg text-muted">
-              Reserve seminar halls, labs, courts and equipment in seconds. Pay securely, track every
-              request, and never double-book again.
-            </p>
-          </Item>
-          <Item className="mt-9 flex flex-wrap gap-3">
-            <Link to="/register" className={buttonClasses('primary', 'lg')}>
-              Get started
-            </Link>
-            <Link to="/login" className={buttonClasses('outline', 'lg')}>
-              Sign in
-            </Link>
-          </Item>
-        </Stagger>
-      </section>
+      <Hero />
+      <Marquee />
 
-      <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="font-display text-3xl tracking-tight text-ink sm:text-4xl">Available now</h2>
-        </div>
+      <section id="services" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-24 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-12 flex items-end justify-between gap-6"
+        >
+          <div>
+            <p className="text-xs tracking-[0.2em] text-accent-strong uppercase">01 — Services</p>
+            <h2 className="mt-3 font-display text-5xl tracking-tight text-ink sm:text-7xl">Available now</h2>
+          </div>
+          <p className="hidden max-w-xs text-muted sm:block">
+            Pick a service, choose a slot, and we hold it for you while you confirm.
+          </p>
+        </motion.div>
 
         {failed ? (
           <p className="rounded-xl border border-line bg-surface p-6 text-muted">
             Services could not be loaded. Make sure the backend is running.
           </p>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {services
-              ? services.map((s) => <ServiceCard key={s._id} service={s} />)
+              ? services.map((s, i) => (
+                  <motion.div
+                    key={s._id}
+                    initial={{ opacity: 0, y: 50 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.8, delay: (i % 3) * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <ServiceCard service={s} />
+                  </motion.div>
+                ))
               : Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}
           </div>
         )}

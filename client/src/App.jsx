@@ -9,6 +9,7 @@ import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import NotFound from './pages/NotFound.jsx'
+import Cursor from './components/Cursor.jsx'
 
 export default function App() {
   const location = useLocation()
@@ -21,6 +22,8 @@ export default function App() {
   return (
     <>
       <Navbar />
+      <Cursor />
+<div className="grain" aria-hidden="true" />
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Home />} />

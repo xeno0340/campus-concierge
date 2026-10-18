@@ -12,9 +12,9 @@ export default function Logo({ className = '' }) {
           strokeLinecap="round"
         />
       </svg>
-      <span className="font-display text-[22px] leading-none tracking-tight text-ink">
-        Campus Concierge
-      </span>
+      <span className="whitespace-nowrap font-display text-[19px] leading-none tracking-tight text-ink sm:text-[22px]">
+  Campus Concierge
+</span>
     </span>
   )
 }
