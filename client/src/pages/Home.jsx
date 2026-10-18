@@ -6,6 +6,7 @@ import Marquee from '../components/Marquee.jsx'
 import TiltCard from '../components/TiltCard.jsx'
 import ServiceImage from '../components/ServiceImage.jsx'
 import { api } from '../lib/api.js'
+import PhoneSequence from '../components/PhoneSequence.jsx'
 
 const CATEGORY = {
   hall: 'Halls',
@@ -62,8 +63,9 @@ export default function Home() {
 
   return (
     <PageTransition>
-      <Hero />
-      <Marquee />
+  <Hero />
+  <Marquee />
+  <PhoneSequence />
 
       <section id="services" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-24 sm:px-6">
         <motion.div
