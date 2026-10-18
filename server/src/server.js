@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 import userRoutes from './routes/user.routes.js'
+import serviceRoutes from './routes/service.routes.js'
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -30,6 +31,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/services', serviceRoutes)
 
 app.use(notFound)
 app.use(errorHandler)

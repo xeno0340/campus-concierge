@@ -6,7 +6,8 @@
   "scripts": {
   "dev": "nodemon src/server.js",
   "start": "node src/server.js",
-  "seed:admin": "node scripts/seedAdmin.js"
+  "seed:admin": "node scripts/seedAdmin.js",
+  "seed:services": "node scripts/seedServices.js"
 },
   "keywords": [],
   "type": "module",
