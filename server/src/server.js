@@ -9,6 +9,8 @@ import authRoutes from './routes/auth.routes.js'
 import userRoutes from './routes/user.routes.js'
 import serviceRoutes from './routes/service.routes.js'
 import { notFound, errorHandler } from './middleware/errorHandler.js'
+import bookingRoutes from './routes/booking.routes.js'
+import { expireStaleHolds } from './lib/bookingEngine.js'
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.error('JWT_SECRET is missing or shorter than 32 characters. Fix server/.env')
@@ -32,6 +34,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/services', serviceRoutes)
+app.use('/api/bookings', bookingRoutes)
 
 app.use(notFound)
 app.use(errorHandler)
@@ -40,4 +43,9 @@ const PORT = process.env.PORT || 5000
 
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+
+  // Every minute, free seats held by unpaid or unanswered bookings
+  setInterval(() => {
+    expireStaleHolds().catch((e) => console.error('Hold sweep failed:', e.message))
+  }, 60 * 1000)
 })
