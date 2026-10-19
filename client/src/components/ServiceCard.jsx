@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import TiltCard from './TiltCard.jsx'
 import ServiceImage from './ServiceImage.jsx'
+import StarRating from './StarRating.jsx'
 import { CATEGORY_LABELS, formatPrice } from '../lib/format.js'
 
 export default function ServiceCard({ service }) {
@@ -30,7 +31,18 @@ export default function ServiceCard({ service }) {
           <div className="p-6">
             <h3 className="font-display text-2xl leading-tight text-ink">{service.name}</h3>
             <p className="mt-2 text-sm text-muted">{service.location}</p>
-            <div className="mt-6 flex items-center justify-between border-t border-line pt-4 text-sm">
+            <p className="mt-3 flex h-5 items-center gap-1.5 text-xs text-muted">
+              {service.ratingCount > 0 ? (
+                <>
+                  <StarRating value={service.ratingAvg} size="size-3.5" />
+                  <span className="text-ink">{service.ratingAvg.toFixed(1)}</span>
+                  <span>({service.ratingCount})</span>
+                </>
+              ) : (
+                'No ratings yet'
+              )}
+            </p>
+            <div className="mt-5 flex items-center justify-between border-t border-line pt-4 text-sm">
               <span className="font-medium text-ink">{formatPrice(service.price)}</span>
               <span className="text-muted">{service.slotMinutes} min slots</span>
             </div>

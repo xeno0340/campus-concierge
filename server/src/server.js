@@ -10,11 +10,12 @@ import userRoutes from './routes/user.routes.js'
 import serviceRoutes from './routes/service.routes.js'
 import { notFound, errorHandler } from './middleware/errorHandler.js'
 import bookingRoutes from './routes/booking.routes.js'
-import { expireStaleHolds } from './lib/bookingEngine.js'
+import { expireStaleHolds, finishPastBookings } from './lib/bookingEngine.js'
 import paymentRoutes from './routes/payment.routes.js'
 import { razorpayWebhook } from './controllers/payment.controller.js'
 import { retryFailedRefunds } from './lib/refunds.js'
 import statsRoutes from './routes/stats.routes.js'
+import reviewRoutes from './routes/review.routes.js'
 import { validateEnv, allowedOrigins } from './config/env.js'
 import { apiLimiter } from './middleware/limiters.js'
 
@@ -56,6 +57,7 @@ app.use('/api/services', serviceRoutes)
 app.use('/api/bookings', bookingRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/reviews', reviewRoutes)
 
 app.use(notFound)
 app.use(errorHandler)
@@ -65,9 +67,10 @@ const PORT = process.env.PORT || 5000
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
-  // Every minute, free seats held by unpaid or unanswered bookings, and retry any failed refunds
+  // Every minute, free seats held by unpaid or unanswered bookings, close out finished bookings, and retry any failed refunds
   setInterval(() => {
     expireStaleHolds().catch((e) => console.error('Hold sweep failed:', e.message))
+    finishPastBookings().catch((e) => console.error('Finish sweep failed:', e.message))
     retryFailedRefunds().catch((e) => console.error('Refund retry failed:', e.message))
   }, 60 * 1000)
 })

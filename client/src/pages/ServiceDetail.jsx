@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import PageTransition from '../components/PageTransition.jsx'
 import ServiceImage from '../components/ServiceImage.jsx'
+import ServiceReviews from '../components/ServiceReviews.jsx'
+import StarRating from '../components/StarRating.jsx'
 import { buttonClasses } from '../components/ui/Button.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
@@ -220,6 +222,12 @@ export default function ServiceDetail() {
                   {service.name}
                 </h1>
                 <p className="mt-2 text-white/80">{service.location}</p>
+                {service.ratingCount > 0 && (
+                  <p className="mt-3 flex items-center gap-2 text-sm text-white/85">
+                    <StarRating value={service.ratingAvg} size="size-4" />
+                    {service.ratingAvg.toFixed(1)} ({service.ratingCount})
+                  </p>
+                )}
               </>
             ) : (
               <div className="space-y-3">
@@ -483,6 +491,8 @@ export default function ServiceDetail() {
             )}
           </aside>
         </div>
+
+        <ServiceReviews serviceId={id} />
       </div>
     </PageTransition>
   )

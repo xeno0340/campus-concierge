@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
 import StatsPanel from '../components/StatsPanel.jsx'
+import FeedbackPanel from '../components/FeedbackPanel.jsx'
 
 const TABS = [
   { key: 'pending_approval', label: 'Needs approval' },
@@ -253,6 +254,8 @@ export default function Dashboard() {
           ))}
         </ul>
       )}
+
+      <FeedbackPanel />
     </main>
   )
 }

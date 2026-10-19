@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import CheckInPass from '../components/CheckInPass.jsx'
+import ReviewModal from '../components/ReviewModal.jsx'
+import StarRating from '../components/StarRating.jsx'
 import PageTransition from '../components/PageTransition.jsx'
 import { buttonClasses } from '../components/ui/Button.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -48,6 +50,9 @@ export default function MyBookings() {
   const [errors, setErrors] = useState({})
   const [passFor, setPassFor] = useState(null)
   const closePass = useCallback(() => setPassFor(null), [])
+  const [reviews, setReviews] = useState({}) // bookingId -> review
+  const [reviewFor, setReviewFor] = useState(null)
+  const closeReview = useCallback(() => setReviewFor(null), [])
 
   useEffect(() => {
     if (isStaff) return // staff are redirected below, and this endpoint is students-only
@@ -60,6 +65,21 @@ export default function MyBookings() {
       .catch(() => {
         if (!off) setFailed(true)
       })
+    return () => {
+      off = true
+    }
+  }, [isStaff])
+
+  // which bookings I have already rated
+  useEffect(() => {
+    if (isStaff) return
+    let off = false
+    api
+      .get('/reviews/mine')
+      .then((res) => {
+        if (!off) setReviews(Object.fromEntries(res.data.reviews.map((r) => [r.booking, r])))
+      })
+      .catch(() => {})
     return () => {
       off = true
     }
@@ -255,6 +275,33 @@ export default function MyBookings() {
                     </p>
                   )}
 
+                  {b.status === 'no_show' && (
+                    <p className="mt-4 rounded-xl bg-danger/10 p-3 text-sm text-danger">
+                      You did not check in for this slot.
+                    </p>
+                  )}
+
+                  {['checked_in', 'completed'].includes(b.status) && new Date(b.end).getTime() < now && (
+                    <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-surface-2 p-3 text-sm">
+                      {reviews[b._id] ? (
+                        <>
+                          <StarRating value={reviews[b._id].rating} size="size-4" />
+                          <span className="text-muted">Thanks for your feedback.</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-muted">How was your visit?</span>
+                          <button
+                            onClick={() => setReviewFor(b)}
+                            className="rounded-full bg-primary px-4 py-2 text-sm font-medium whitespace-nowrap text-on-primary"
+                          >
+                            Rate this visit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {(b.status === 'confirmed' || CANCELLABLE.includes(b.status)) && (
                     <div className="mt-4 flex flex-wrap items-center gap-3">
                       {b.status === 'confirmed' && (
@@ -316,6 +363,16 @@ export default function MyBookings() {
       </div>
 
       {passFor && <CheckInPass booking={passFor} onClose={closePass} />}
+      {reviewFor && (
+        <ReviewModal
+          booking={reviewFor}
+          onClose={closeReview}
+          onDone={(review) => {
+            setReviews((r) => ({ ...r, [review.booking]: review }))
+            setReviewFor(null)
+          }}
+        />
+      )}
     </PageTransition>
   )
 }

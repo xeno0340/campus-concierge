@@ -130,3 +130,28 @@ export async function expireStaleHolds() {
     }
   }
 }
+
+// Closes out bookings whose slot has ended:
+//   checked in -> completed (this is what unlocks feedback)
+//   confirmed but never checked in -> no_show
+export async function finishPastBookings() {
+  const now = new Date()
+
+  const attended = await Booking.find({ status: 'checked_in', end: { $lt: now } }).limit(200)
+  for (const booking of attended) {
+    try {
+      await transition(booking, 'completed', { note: 'Slot finished' })
+    } catch {
+      /* changed by someone else meanwhile, so skip */
+    }
+  }
+
+  const missed = await Booking.find({ status: 'confirmed', end: { $lt: now } }).limit(200)
+  for (const booking of missed) {
+    try {
+      await transition(booking, 'no_show', { note: 'Did not check in' })
+    } catch {
+      /* changed by someone else meanwhile, so skip */
+    }
+  }
+}
