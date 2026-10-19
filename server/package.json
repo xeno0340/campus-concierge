@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon src/server.js",
-  "start": "node src/server.js",
-  "seed:admin": "node scripts/seedAdmin.js",
-  "seed:services": "node scripts/seedServices.js"
-},
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "seed:admin": "node scripts/seedAdmin.js",
+    "seed:services": "node scripts/seedServices.js"
+  },
   "keywords": [],
   "type": "module",
   "dependencies": {
@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.2",
     "morgan": "^1.12.1",
+    "razorpay": "^2.9.8",
     "zod": "^4.6.7"
   },
   "devDependencies": {

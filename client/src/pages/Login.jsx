@@ -1,20 +1,21 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import AuthShell from '../components/AuthShell.jsx'
 import Button from '../components/ui/Button.jsx'
 import Input from '../components/ui/Input.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { homeFor } from '../lib/roles.js'
 
 export default function Login() {
   const { user, login } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to="/dashboard" replace />
+    // once signed in: back to where they came from, otherwise their home page
+  if (user) return <Navigate to={location.state?.from || homeFor(user)} replace />
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -25,7 +26,6 @@ export default function Login() {
     setFormError('')
     try {
       await login(form.email, form.password)
-      navigate(location.state?.from || '/dashboard', { replace: true })
     } catch (err) {
       setErrors(err.fieldErrors || {})
       setFormError(Object.keys(err.fieldErrors || {}).length ? '' : err.userMessage)

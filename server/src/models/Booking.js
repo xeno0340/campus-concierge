@@ -53,6 +53,14 @@ const bookingSchema = new Schema(
     holdExpiresAt: { type: Date, default: null },
     confirmedAt: { type: Date },
 
+        payment: {
+      provider: { type: String, default: 'razorpay' },
+      orderId: String,
+      paymentId: String,
+      amount: Number,
+      paidAt: Date,
+    },
+
     notes: { type: String, trim: true, maxlength: 300 },
     statusHistory: [historySchema],
   },

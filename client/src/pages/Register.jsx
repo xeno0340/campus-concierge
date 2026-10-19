@@ -1,19 +1,19 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import AuthShell from '../components/AuthShell.jsx'
 import Button from '../components/ui/Button.jsx'
 import Input from '../components/ui/Input.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { homeFor } from '../lib/roles.js'
 
 export default function Register() {
   const { user, register } = useAuth()
-  const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', password: '', department: '' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to="/dashboard" replace />
+    if (user) return <Navigate to={homeFor(user)} replace />
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -26,7 +26,6 @@ export default function Register() {
       const payload = { ...form }
       if (!payload.department.trim()) delete payload.department
       await register(payload)
-      navigate('/dashboard', { replace: true })
     } catch (err) {
       setErrors(err.fieldErrors || {})
       setFormError(Object.keys(err.fieldErrors || {}).length ? '' : err.userMessage)
