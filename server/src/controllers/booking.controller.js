@@ -242,3 +242,47 @@ export const rejectBooking = asyncHandler(async (req, res) => {
   })
   res.json({ success: true, booking: updated })
 })
+// ---- check-in ----
+
+const CHECKIN_EARLY_MIN = 30 // check-in opens this long before the slot starts
+const pretty = (s) => s.replace(/_/g, ' ')
+
+// PATCH /api/bookings/check-in   { code: "CC-1B2D8E44" }
+export const checkIn = asyncHandler(async (req, res) => {
+  const code = String(req.body.code || '').trim().toUpperCase()
+  if (!/^CC-[0-9A-F]{8}$/.test(code)) {
+    throw new AppError('That does not look like a booking code', 400)
+  }
+
+  const booking = await Booking.findOne({ bookingCode: code })
+    .populate('service', 'name location manager')
+    .populate('user', 'name email department')
+  if (!booking) throw new AppError('No booking found for that code', 404)
+
+  const isAdmin = req.user.role === 'admin'
+  if (!isAdmin && String(booking.service.manager) !== req.user.id) {
+    throw new AppError('This booking is for a service you do not manage', 403)
+  }
+
+  if (booking.status === 'checked_in') throw new AppError('This booking is already checked in', 409)
+  if (booking.status !== 'confirmed') {
+    throw new AppError(`This booking is ${pretty(booking.status)}, so it cannot be checked in`, 400)
+  }
+
+  const now = Date.now()
+  if (now < booking.start.getTime() - CHECKIN_EARLY_MIN * 60000) {
+    throw new AppError(`Too early. Check-in opens ${CHECKIN_EARLY_MIN} minutes before the slot starts`, 400)
+  }
+  if (now > booking.end.getTime()) throw new AppError('This slot has already ended', 400)
+
+  const updated = await transition(booking, 'checked_in', {
+    by: req.user._id,
+    note: 'Checked in',
+    set: { checkedInAt: new Date() },
+  })
+
+  res.json({
+    success: true,
+    booking: { ...updated.toObject(), user: booking.user, service: booking.service },
+  })
+})

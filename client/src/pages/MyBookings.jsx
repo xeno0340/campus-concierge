@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import CheckInPass from '../components/CheckInPass.jsx'
 import PageTransition from '../components/PageTransition.jsx'
 import { buttonClasses } from '../components/ui/Button.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -36,6 +37,8 @@ function countdown(ms) {
 
 export default function MyBookings() {
   const { user } = useAuth()
+  const isStaff = !!user && ['manager', 'admin'].includes(user.role)
+
   const [bookings, setBookings] = useState(null)
   const [failed, setFailed] = useState(false)
   const [tab, setTab] = useState('upcoming')
@@ -43,8 +46,11 @@ export default function MyBookings() {
   const [confirmId, setConfirmId] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [errors, setErrors] = useState({})
+  const [passFor, setPassFor] = useState(null)
+  const closePass = useCallback(() => setPassFor(null), [])
 
   useEffect(() => {
+    if (isStaff) return // staff are redirected below, and this endpoint is students-only
     let off = false
     api
       .get('/bookings/mine', { params: { limit: 50 } })
@@ -57,7 +63,7 @@ export default function MyBookings() {
     return () => {
       off = true
     }
-  }, [])
+  }, [isStaff])
 
   // ticks once a second so hold countdowns stay live
   useEffect(() => {
@@ -102,6 +108,9 @@ export default function MyBookings() {
   const upcoming = bookings?.filter(isUpcoming) ?? []
   const past = bookings?.filter((b) => !isUpcoming(b)) ?? []
   const shown = tab === 'upcoming' ? upcoming : past
+
+  // managers and admins have no personal bookings, so send them to their dashboard
+  if (isStaff) return <Navigate to="/dashboard" replace />
 
   return (
     <PageTransition>
@@ -227,31 +236,53 @@ export default function MyBookings() {
                     </p>
                   )}
 
-                  {CANCELLABLE.includes(b.status) && (
-                    <div className="mt-4 flex items-center gap-3">
-                      {confirmId === b._id ? (
-                        <>
-                          <span className="text-sm text-muted">Cancel this booking?</span>
-                          <button
-                            onClick={() => cancel(b)}
-                            disabled={busyId === b._id}
-                            className="rounded-full bg-danger px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                          >
-                            {busyId === b._id ? 'Cancelling' : 'Yes, cancel'}
-                          </button>
-                          <button onClick={() => setConfirmId(null)} className="text-sm text-muted hover:text-ink">
-                            Keep it
-                          </button>
-                        </>
-                      ) : (
+                  {(b.status === 'confirmed' || CANCELLABLE.includes(b.status)) && (
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {b.status === 'confirmed' && (
                         <button
-                          onClick={() => setConfirmId(b._id)}
-                          disabled={busyId === b._id}
-                          className="rounded-full border border-line px-4 py-2 text-sm text-ink transition-colors hover:border-danger/60 hover:text-danger disabled:opacity-50"
+                          onClick={() => setPassFor(b)}
+                          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium whitespace-nowrap text-on-primary"
                         >
-                          Cancel booking
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="size-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" />
+                          </svg>
+                          Show check-in pass
                         </button>
                       )}
+
+                      {CANCELLABLE.includes(b.status) &&
+                        (confirmId === b._id ? (
+                          <>
+                            <span className="text-sm text-muted">Cancel this booking?</span>
+                            <button
+                              onClick={() => cancel(b)}
+                              disabled={busyId === b._id}
+                              className="rounded-full bg-danger px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                            >
+                              {busyId === b._id ? 'Cancelling' : 'Yes, cancel'}
+                            </button>
+                            <button onClick={() => setConfirmId(null)} className="text-sm text-muted hover:text-ink">
+                              Keep it
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmId(b._id)}
+                            disabled={busyId === b._id}
+                            className="rounded-full border border-line px-4 py-2 text-sm text-ink transition-colors hover:border-danger/60 hover:text-danger disabled:opacity-50"
+                          >
+                            Cancel booking
+                          </button>
+                        ))}
                     </div>
                   )}
                 </li>
@@ -260,6 +291,8 @@ export default function MyBookings() {
           </ul>
         )}
       </div>
+
+      {passFor && <CheckInPass booking={passFor} onClose={closePass} />}
     </PageTransition>
   )
 }

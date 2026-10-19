@@ -52,6 +52,7 @@ const bookingSchema = new Schema(
     holdsSeat: { type: Boolean, default: true },
     holdExpiresAt: { type: Date, default: null },
     confirmedAt: { type: Date },
+    checkedInAt: { type: Date },
 
         payment: {
       provider: { type: String, default: 'razorpay' },

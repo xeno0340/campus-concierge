@@ -4,7 +4,7 @@ import AuthShell from '../components/AuthShell.jsx'
 import Button from '../components/ui/Button.jsx'
 import Input from '../components/ui/Input.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { homeFor } from '../lib/roles.js'
+import { landingFor } from '../lib/roles.js'
 
 export default function Login() {
   const { user, login } = useAuth()
@@ -15,7 +15,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
 
     // once signed in: back to where they came from, otherwise their home page
-  if (user) return <Navigate to={location.state?.from || homeFor(user)} replace />
+  if (user) return <Navigate to={landingFor(user, location.state?.from)} replace />
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 

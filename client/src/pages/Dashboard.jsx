@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
+import StatsPanel from '../components/StatsPanel.jsx'
 
 const TABS = [
   { key: 'pending_approval', label: 'Needs approval' },
@@ -206,6 +207,13 @@ export default function Dashboard() {
           : 'Bookings for the services you manage.'}{' '}
         Approve requests here so students can confirm or pay.
       </p>
+            <Link
+        to="/checkin"
+        className="mt-6 inline-flex rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-on-primary"
+      >
+        Open check-in
+      </Link>
+      <StatsPanel />
 
       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {TABS.map((t) => (

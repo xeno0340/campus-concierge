@@ -14,12 +14,14 @@ import {
   formatPrice,
   formatTimeIST,
 } from '../lib/format.js'
+import { payForBooking } from '../lib/razorpay.js'
 
 const OUTCOME_TEXT = {
   confirmed: 'You are all set. Show your booking code at the venue.',
   pending_approval: 'Sent to the service manager. You will hear back within 24 hours.',
-  awaiting_payment: 'Your slot is held for 10 minutes. Online payment arrives in the next phase.',
+  awaiting_payment: 'Your slot is held for 10 minutes. Pay now to confirm it.',
 }
+
 function HoldTimer({ until }) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -49,11 +51,15 @@ function HoldTimer({ until }) {
         {mm}:{ss}
       </p>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-warning/20">
-        <div className="h-full rounded-full bg-warning transition-[width] duration-1000 ease-linear" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-warning transition-[width] duration-1000 ease-linear"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   )
 }
+
 export default function ServiceDetail() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -71,6 +77,8 @@ export default function ServiceDetail() {
   const [formError, setFormError] = useState('')
   const [booked, setBooked] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState('')
 
   useEffect(() => {
     let off = false
@@ -147,10 +155,25 @@ export default function ServiceDetail() {
     }
   }
 
+  const payNow = async () => {
+    setPaying(true)
+    setPayError('')
+    try {
+      const updated = await payForBooking(booked, user)
+      setBooked((b) => ({ ...b, ...updated }))
+      setRefreshKey((k) => k + 1)
+    } catch (err) {
+      if (err.message !== 'dismissed') setPayError(err.userMessage || err.message)
+    } finally {
+      setPaying(false)
+    }
+  }
+
   const resetBooking = () => {
     setBooked(null)
     setSelected(null)
     setNotes('')
+    setPayError('')
   }
 
   if (notFound) {
@@ -273,7 +296,16 @@ export default function ServiceDetail() {
             {booked ? (
               <div className="py-4 text-center">
                 <div className="mx-auto grid size-14 place-items-center rounded-full bg-success/15 text-success">
-                  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
                     <path d="m5 12 5 5 9-10" />
                   </svg>
                 </div>
@@ -285,10 +317,23 @@ export default function ServiceDetail() {
                   {summaryDay.weekday} {summaryDay.day} {summaryDay.month}, {formatTimeIST(booked.start)} to{' '}
                   {formatTimeIST(booked.end)}
                 </p>
-                                <p className="mx-auto mt-4 max-w-sm text-sm text-ink/80">{OUTCOME_TEXT[booked.status]}</p>
+                <p className="mx-auto mt-4 max-w-sm text-sm text-ink/80">{OUTCOME_TEXT[booked.status]}</p>
 
                 {booked.status === 'awaiting_payment' && booked.holdExpiresAt && (
                   <HoldTimer until={booked.holdExpiresAt} />
+                )}
+
+                {booked.status === 'awaiting_payment' && (
+                  <div className="mt-4">
+                    <button
+                      onClick={payNow}
+                      disabled={paying}
+                      className={`${buttonClasses('primary', 'sm')} justify-center px-8 py-3 disabled:opacity-50`}
+                    >
+                      {paying ? 'Opening…' : `Pay ${formatPrice(booked.amount)}`}
+                    </button>
+                    {payError && <p className="mt-3 text-sm text-danger">{payError}</p>}
+                  </div>
                 )}
 
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -320,7 +365,9 @@ export default function ServiceDetail() {
                       >
                         <span className={`text-xs ${on ? 'text-accent' : 'text-muted'}`}>{p.weekday}</span>
                         <span className="mt-1 font-display text-2xl leading-none">{p.day}</span>
-                        <span className={`mt-1 text-[11px] ${on ? 'text-on-primary/70' : 'text-muted'}`}>{p.month}</span>
+                        <span className={`mt-1 text-[11px] ${on ? 'text-on-primary/70' : 'text-muted'}`}>
+                          {p.month}
+                        </span>
                       </button>
                     )
                   })}
@@ -395,7 +442,10 @@ export default function ServiceDetail() {
                 )}
 
                 {formError && (
-                  <p role="alert" className="mt-4 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+                  <p
+                    role="alert"
+                    className="mt-4 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm text-danger"
+                  >
                     {formError}
                   </p>
                 )}

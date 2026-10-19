@@ -12,6 +12,7 @@ import { notFound, errorHandler } from './middleware/errorHandler.js'
 import bookingRoutes from './routes/booking.routes.js'
 import { expireStaleHolds } from './lib/bookingEngine.js'
 import paymentRoutes from './routes/payment.routes.js'
+import statsRoutes from './routes/stats.routes.js'
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.error('JWT_SECRET is missing or shorter than 32 characters. Fix server/.env')
@@ -37,6 +38,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/services', serviceRoutes)
 app.use('/api/bookings', bookingRoutes)
 app.use('/api/payments', paymentRoutes)
+app.use('/api/stats', statsRoutes)
 
 app.use(notFound)
 app.use(errorHandler)

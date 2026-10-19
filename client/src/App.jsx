@@ -13,6 +13,7 @@ import Services from './pages/Services.jsx'
 import ServiceDetail from './pages/ServiceDetail.jsx'
 import MyBookings from './pages/MyBookings.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import CheckIn from './pages/CheckIn.jsx'
 
 export default function App() {
   const location = useLocation()
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/checkin" element={<ProtectedRoute><CheckIn /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
