@@ -14,6 +14,7 @@ import ServiceDetail from './pages/ServiceDetail.jsx'
 import MyBookings from './pages/MyBookings.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import CheckIn from './pages/CheckIn.jsx'
+import Admin from './pages/Admin.jsx'
 
 export default function App() {
   const location = useLocation()
@@ -27,7 +28,7 @@ export default function App() {
     <>
       <Navbar />
       <Cursor />
-<div className="grain" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Home />} />
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
           <Route path="/checkin" element={<ProtectedRoute><CheckIn /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>

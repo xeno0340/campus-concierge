@@ -12,6 +12,8 @@ import {
   holdUntil,
   APPROVED_PAY_HOURS,
 } from '../lib/bookingEngine.js'
+import { refundBooking } from '../lib/refunds.js'
+import { notifyBooking } from '../lib/notifications.js'
 
 const MAX_ACTIVE = { student: 5, faculty: 20 }
 const CANCEL_CUTOFF_HOURS = 2
@@ -107,6 +109,11 @@ export const createBooking = asyncHandler(async (req, res) => {
   })
   await booking.populate('service', 'name category location price')
 
+  // Waiting-for-approval and free instant bookings get an email now. Paid ones are
+  // emailed when the payment arrives.
+  if (booking.status === 'pending_approval') notifyBooking('requested', booking)
+  else if (booking.status === 'confirmed') notifyBooking('confirmed', booking)
+
   res.status(201).json({ success: true, booking })
 })
 
@@ -164,10 +171,14 @@ export const cancelBooking = asyncHandler(async (req, res) => {
     )
   }
 
-  const updated = await transition(booking, 'cancelled', {
-    by: req.user._id,
-    note: req.body.reason || 'Cancelled',
-  })
+  const reason = req.body.reason || 'Cancelled'
+  let updated = await transition(booking, 'cancelled', { by: req.user._id, note: reason })
+
+  // A paid booking gets its money back (a failed refund is recorded and retried)
+  if (updated.payment?.paymentId) {
+    updated = await refundBooking(updated, { reason })
+  }
+  notifyBooking('cancelled', updated)
   res.json({ success: true, booking: updated })
 })
 

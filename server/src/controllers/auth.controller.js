@@ -2,6 +2,12 @@ import User from '../models/User.js'
 import { AppError } from '../utils/AppError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendAuth, cookieOptions } from '../utils/token.js'
+import bcrypt from 'bcryptjs'
+import { notifyWelcome } from '../lib/notifications.js'
+
+// A real-looking hash to compare against when the email is unknown, so a missing
+// account takes as long to reject as a wrong password (stops email guessing by timing)
+const DUMMY_HASH = '$2b$12$2crCcS3LMggve174DBDtoOTb0xtyaHCbdhRLkNvOAOJY0VuX8c5y6'
 
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, department, phone } = req.body
@@ -11,6 +17,7 @@ export const register = asyncHandler(async (req, res) => {
 
   // role is forced to 'student' on purpose - never trust the client for roles
   const user = await User.create({ name, email, password, department, phone, role: 'student' })
+  notifyWelcome(user)
   sendAuth(res, user, 201)
 })
 
@@ -18,7 +25,9 @@ export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body
 
   const user = await User.findOne({ email }).select('+password')
-  const ok = user && (await user.comparePassword(password))
+  const ok = user
+    ? await user.comparePassword(password)
+    : (await bcrypt.compare(password, DUMMY_HASH), false)
   if (!ok) throw new AppError('Invalid email or password', 401)
   if (!user.isActive) throw new AppError('This account has been deactivated', 403)
 

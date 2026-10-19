@@ -12,26 +12,43 @@ import { notFound, errorHandler } from './middleware/errorHandler.js'
 import bookingRoutes from './routes/booking.routes.js'
 import { expireStaleHolds } from './lib/bookingEngine.js'
 import paymentRoutes from './routes/payment.routes.js'
+import { razorpayWebhook } from './controllers/payment.controller.js'
+import { retryFailedRefunds } from './lib/refunds.js'
 import statsRoutes from './routes/stats.routes.js'
+import { validateEnv, allowedOrigins } from './config/env.js'
+import { apiLimiter } from './middleware/limiters.js'
 
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('JWT_SECRET is missing or shorter than 32 characters. Fix server/.env')
-  process.exit(1)
-}
+validateEnv()
 
 const app = express()
 
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
 app.use(helmet())
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }))
+const origins = allowedOrigins()
+app.use(
+  cors({
+    // requests with no Origin (curl, Razorpay's webhook, same-site) are not browser cross-site calls
+    origin: (origin, cb) => cb(null, !origin || origins.includes(origin)),
+    credentials: true,
+  })
+)
+// Razorpay's webhook needs the raw body to check its signature, so it goes BEFORE express.json
+app.post('/api/payments/webhook', express.raw({ type: 'application/json', limit: '100kb' }), razorpayWebhook)
+
 app.use(express.json({ limit: '10kb' }))
+app.use((req, res, next) => {
+  req.body ??= {} // routes that read req.body.x never crash on an empty body
+  next()
+})
 app.use(cookieParser())
-app.use(morgan('dev'))
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Backend and database are connected' })
 })
+
+app.use('/api', apiLimiter)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
@@ -48,8 +65,16 @@ const PORT = process.env.PORT || 5000
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
-  // Every minute, free seats held by unpaid or unanswered bookings
+  // Every minute, free seats held by unpaid or unanswered bookings, and retry any failed refunds
   setInterval(() => {
     expireStaleHolds().catch((e) => console.error('Hold sweep failed:', e.message))
+    retryFailedRefunds().catch((e) => console.error('Refund retry failed:', e.message))
   }, 60 * 1000)
+})
+
+// Log anything that slips through instead of dying silently
+process.on('unhandledRejection', (reason) => console.error('Unhandled rejection:', reason))
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err)
+  process.exit(1)
 })

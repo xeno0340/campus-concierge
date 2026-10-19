@@ -54,12 +54,18 @@ const bookingSchema = new Schema(
     confirmedAt: { type: Date },
     checkedInAt: { type: Date },
 
-        payment: {
+    payment: {
       provider: { type: String, default: 'razorpay' },
       orderId: String,
       paymentId: String,
       amount: Number,
       paidAt: Date,
+      refundId: String,
+      refundAmount: Number,
+      refundStatus: { type: String, enum: ['pending', 'processed', 'failed'] },
+      refundedAt: Date,
+      refundError: String,
+      refundAttempts: { type: Number, default: 0 },
     },
 
     notes: { type: String, trim: true, maxlength: 300 },

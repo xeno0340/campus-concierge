@@ -1,18 +1,10 @@
 import crypto from 'crypto'
-import Razorpay from 'razorpay'
 import Booking from '../models/Booking.js'
 import { AppError } from '../utils/AppError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { transition, expireStaleHolds } from '../lib/bookingEngine.js'
-
-// Created on demand so the server still boots if keys are missing
-function razorpay() {
-  const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env
-  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-    throw new AppError('Payments are not configured on the server', 500)
-  }
-  return new Razorpay({ key_id: RAZORPAY_KEY_ID, key_secret: RAZORPAY_KEY_SECRET })
-}
+import { getRazorpay } from '../lib/gateway.js'
+import { refundBooking } from '../lib/refunds.js'
 
 async function loadOwnBooking(bookingId, userId) {
   if (typeof bookingId !== 'string') throw new AppError('bookingId is required', 400)
@@ -37,7 +29,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     throw new AppError('The hold on this slot has expired', 400)
   }
 
-  const order = await razorpay().orders.create({
+  const order = await getRazorpay().orders.create({
     amount: Math.round(booking.amount * 100), // Razorpay works in paise
     currency: 'INR',
     receipt: booking.bookingCode,
@@ -101,3 +93,78 @@ export const verifyPayment = asyncHandler(async (req, res) => {
 
   res.json({ success: true, booking: updated })
 })
+
+// ---------------------------------------------------------------------------
+// Razorpay webhook: POST /api/payments/webhook
+// Razorpay calls this itself, so it is not logged-in and it needs the RAW body
+// (mounted with express.raw in server.js) to check the signature.
+// ---------------------------------------------------------------------------
+
+function validSignature(rawBody, signature, secret) {
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
+  const a = Buffer.from(expected)
+  const b = Buffer.from(signature)
+  return a.length === b.length && crypto.timingSafeEqual(a, b)
+}
+
+async function onPaymentCaptured(p) {
+  const booking = await Booking.findOne({ 'payment.orderId': p.order_id })
+  if (!booking) return // not one of ours
+
+  // Ignore a payment whose amount does not match what we asked for
+  if (p.currency !== 'INR' || p.amount !== Math.round((booking.payment.amount ?? booking.amount) * 100)) {
+    console.error(`Webhook: amount mismatch on ${booking.bookingCode}`)
+    return
+  }
+
+  // Already handled (the browser verify call got there first)
+  if (booking.payment.paymentId === p.id) return
+
+  const paidFields = { 'payment.paymentId': p.id, 'payment.paidAt': new Date() }
+
+  if (booking.status === 'awaiting_payment') {
+    // The customer paid but the browser never reported back (tab closed, network drop)
+    await transition(booking, 'confirmed', {
+      note: 'Payment received (webhook)',
+      set: { confirmedAt: new Date(), ...paidFields },
+    })
+    return
+  }
+
+  if (!booking.payment.paymentId) {
+    // Paid after the booking was cancelled or expired: the seat is gone, so give the money back
+    const fresh = await Booking.findByIdAndUpdate(booking._id, { $set: paidFields }, { new: true })
+    await refundBooking(fresh, { reason: 'Payment arrived after the booking ended' })
+  }
+}
+
+async function onRefundUpdate(r, status) {
+  const booking = await Booking.findOne({ 'payment.paymentId': r.payment_id })
+  if (!booking) return
+  const set = { 'payment.refundId': r.id, 'payment.refundStatus': status }
+  if (status === 'processed') set['payment.refundedAt'] = new Date()
+  if (status === 'failed') set['payment.refundError'] = 'The bank could not complete the refund'
+  await Booking.updateOne({ _id: booking._id }, { $set: set })
+}
+
+export async function razorpayWebhook(req, res) {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+  if (!secret) return res.status(503).json({ ok: false, message: 'Webhook is not configured' })
+
+  const signature = req.get('x-razorpay-signature')
+  if (!Buffer.isBuffer(req.body) || !signature || !validSignature(req.body, signature, secret)) {
+    return res.status(400).json({ ok: false, message: 'Invalid signature' })
+  }
+
+  try {
+    const event = JSON.parse(req.body.toString('utf8'))
+    const payload = event.payload || {}
+    if (event.event === 'payment.captured') await onPaymentCaptured(payload.payment.entity)
+    else if (event.event === 'refund.processed') await onRefundUpdate(payload.refund.entity, 'processed')
+    else if (event.event === 'refund.failed') await onRefundUpdate(payload.refund.entity, 'failed')
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Webhook handling failed:', err.message)
+    res.status(500).json({ ok: false }) // a 5xx makes Razorpay retry later
+  }
+}

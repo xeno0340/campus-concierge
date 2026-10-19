@@ -38,12 +38,15 @@ export default function Navbar() {
 
   const overHero = pathname === '/' && !pastHero && !open
   const canBook = user && ['student', 'faculty'].includes(user.role)
+  const isStaff = user && ['manager', 'admin'].includes(user.role)
+  const isAdmin = user?.role === 'admin'
 
   const links = [
     { to: '/', label: 'Home' },
     { to: '/services', label: 'Services' },
     ...(canBook ? [{ to: '/bookings', label: 'My bookings' }] : []),
-    ...(user ? [{ to: '/dashboard', label: 'Dashboard' }] : []),
+    ...(isStaff ? [{ to: '/dashboard', label: 'Dashboard' }] : []),
+    ...(isAdmin ? [{ to: '/admin', label: 'Manage' }] : []),
   ]
 
   const close = () => setOpen(false)
@@ -85,11 +88,16 @@ export default function Navbar() {
                       My bookings
                     </Link>
                   )}
-                  {['manager', 'admin'].includes(user.role) && (
-  <Link to="/dashboard" className={`${buttonClasses('ghost', 'sm')} whitespace-nowrap`}>
-  Dashboard
-</Link>
-)}
+                  {isStaff && (
+                    <Link to="/dashboard" className={`${buttonClasses('ghost', 'sm')} whitespace-nowrap`}>
+                      Dashboard
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link to="/admin" className={`${buttonClasses('ghost', 'sm')} whitespace-nowrap`}>
+                      Manage
+                    </Link>
+                  )}
                   <button onClick={handleLogout} className={`${buttonClasses('outline', 'sm')} whitespace-nowrap`}>
                     Sign out
                   </button>

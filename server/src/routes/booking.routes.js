@@ -10,6 +10,7 @@ import {
   checkIn,
 } from '../controllers/booking.controller.js'
 import { protect, authorize } from '../middleware/auth.js'
+import { bookingWriteLimiter } from '../middleware/limiters.js'
 import { validate } from '../middleware/validate.js'
 import { createBookingSchema, cancelSchema, rejectSchema } from '../validators/booking.validators.js'
 
@@ -17,7 +18,7 @@ const router = Router()
 
 router.use(protect)
 
-router.post('/', authorize('student', 'faculty'), validate(createBookingSchema), createBooking)
+router.post('/', authorize('student', 'faculty'), bookingWriteLimiter, validate(createBookingSchema), createBooking)
 router.get('/mine', authorize('student', 'faculty'), myBookings)
 router.get('/manage/list', authorize('manager', 'admin'), manageList)
 

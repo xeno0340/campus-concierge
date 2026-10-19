@@ -52,7 +52,7 @@ export default function Cursor() {
       <motion.div
         aria-hidden="true"
         style={{ x, y }}
-        className="pointer-events-none fixed top-0 left-0 z-[100] mix-blend-difference"
+        className="pointer-events-none fixed top-0 left-0 z-[1000] mix-blend-difference"
       >
         <div className="-translate-x-1/2 -translate-y-1/2 size-2 rounded-full bg-white" />
       </motion.div>
@@ -60,7 +60,7 @@ export default function Cursor() {
       <motion.div
         aria-hidden="true"
         style={{ x: sx, y: sy }}
-        className="pointer-events-none fixed top-0 left-0 z-[99] mix-blend-difference"
+        className="pointer-events-none fixed top-0 left-0 z-[999] mix-blend-difference"
       >
         <motion.div
           className="-translate-x-1/2 -translate-y-1/2 grid place-items-center rounded-full border border-white"

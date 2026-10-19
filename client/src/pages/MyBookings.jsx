@@ -227,6 +227,25 @@ export default function MyBookings() {
                     </p>
                   )}
 
+                  {b.status === 'cancelled' && b.payment?.refundStatus && (
+                    <p
+                      className={`mt-4 rounded-xl p-3 text-sm ${
+                        b.payment.refundStatus === 'processed'
+                          ? 'bg-success/10 text-success'
+                          : b.payment.refundStatus === 'failed'
+                            ? 'bg-danger/10 text-danger'
+                            : 'bg-warning/10 text-warning'
+                      }`}
+                    >
+                      {b.payment.refundStatus === 'processed' &&
+                        `${rupees(b.payment.refundAmount ?? b.amount)} was refunded to your original payment method.`}
+                      {b.payment.refundStatus === 'pending' &&
+                        `Refund of ${rupees(b.payment.refundAmount ?? b.amount)} started. It usually reaches you in 5 to 7 working days.`}
+                      {b.payment.refundStatus === 'failed' &&
+                        'Your refund could not be sent yet. We will keep retrying automatically.'}
+                    </p>
+                  )}
+
                   {errors[b._id] && (
                     <p
                       role="alert"
@@ -262,7 +281,11 @@ export default function MyBookings() {
                       {CANCELLABLE.includes(b.status) &&
                         (confirmId === b._id ? (
                           <>
-                            <span className="text-sm text-muted">Cancel this booking?</span>
+                            <span className="text-sm text-muted">
+                              {b.payment?.paymentId
+                                ? `Cancel and get ${rupees(b.payment.amount ?? b.amount)} back?`
+                                : 'Cancel this booking?'}
+                            </span>
                             <button
                               onClick={() => cancel(b)}
                               disabled={busyId === b._id}

@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import Slot from '../models/Slot.js'
 import Booking, { HOLD_STATES, RELEASING_STATES, TRANSITIONS } from '../models/Booking.js'
 import { AppError } from '../utils/AppError.js'
+import { notifyTransition } from './notifications.js'
 
 export const CHECKOUT_HOLD_MIN = 10 // instant-confirm services: time to pay
 export const APPROVAL_HOLD_HOURS = 24 // time for a manager to respond
@@ -109,6 +110,8 @@ export async function transition(booking, next, { by, note, set = {} } = {}) {
   if (releasing && booking.holdsSeat) {
     await Slot.updateOne({ _id: booking.slot }, { $inc: { booked: -1 } })
   }
+
+  notifyTransition(booking.status, updated, note) // email the student (best effort, never throws)
   return updated
 }
 
